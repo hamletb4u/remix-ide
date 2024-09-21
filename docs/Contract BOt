@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface IUniswapV2Router {
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    
+    // Additional function signatures as needed
+}
+
+contract SniperBot {
+    address private owner;
+    IUniswapV2Router public router;
+
+    constructor(address _router) {
+        owner = msg.sender;
+        router = IUniswapV2Router(_router);
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the contract owner");
+        _;
+    }
+
+    // Function to swap tokens
+    function executeTrade(
+        address[] calldata path,
+        uint amountIn,
+        uint amountOutMin
+    ) external onlyOwner {
+        // Ensure the contract has enough tokens for the swap
+        require(IERC20(path[0]).balanceOf(address(this)) >= amountIn, "Insufficient balance");
+
+        // Approve the router to spend tokens
+        IERC20(path[0]).approve(address(router), amountIn);
+
+        // Execute the swap
+        router.swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), block.timestamp);
+    }
+
+    // Function to withdraw tokens
+    function withdrawTokens(address token) external onlyOwner {
+        uint balance = IERC20(token).balanceOf(address(this));
+        IERC20(token).transfer(owner, balance);
+    }
+
+    // Fallback function to receive ETH
+    receive() external payable {}
+}
